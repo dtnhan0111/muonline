@@ -226,9 +226,13 @@ namespace Client.Main.Objects.Player
         // ───────────────────────────────── LOADING ─────────────────────────────────
         public override async Task Load()
         {
+            Console.WriteLine($"[DIAG] PlayerObject.Load START for {Name}, IsMainWalker={IsMainWalker}");
             Model = await BMDLoader.Instance.Prepare("Player/Player.bmd");
+            Console.WriteLine($"[DIAG] PlayerObject.Load: Player.bmd loaded (null={Model == null})");
             CacheHeadBoneHierarchy();
+            Console.WriteLine($"[DIAG] PlayerObject.Load: CacheHeadBoneHierarchy done");
             InitializeActionSpeeds();
+            Console.WriteLine($"[DIAG] PlayerObject.Load: InitializeActionSpeeds done");
 
             if (IsMainWalker)
             {
@@ -236,22 +240,28 @@ namespace Client.Main.Objects.Player
                 var charState = _networkManager.GetCharacterState();
                 CharacterClass = (CharacterClassNumber)charState.Class;
                 await UpdateBodyPartClassesAsync();
+                Console.WriteLine($"[DIAG] PlayerObject.Load: UpdateBodyPartClassesAsync (main) done");
 
                 // Then, hook events to update equipment based on inventory
                 HookInventoryEvents();
                 // Perform the initial appearance update and wait for it to complete
                 await RunInventoryAppearanceUpdateAsync();
+                Console.WriteLine($"[DIAG] PlayerObject.Load: RunInventoryAppearanceUpdateAsync done");
             }
             else
             {
                 // Remote players use AppearanceData
                 await UpdateBodyPartClassesAsync();
+                Console.WriteLine($"[DIAG] PlayerObject.Load: UpdateBodyPartClassesAsync (remote) done");
                 await UpdateEquipmentAppearanceAsync();
+                Console.WriteLine($"[DIAG] PlayerObject.Load: UpdateEquipmentAppearanceAsync done");
             }
 
             await base.Load();
+            Console.WriteLine($"[DIAG] PlayerObject.Load: base.Load() done");
 
             UpdateWorldBoundingBox();
+            Console.WriteLine($"[DIAG] PlayerObject.Load COMPLETE for {Name}");
         }
 
         public async Task Load(PlayerClass playerClass)
