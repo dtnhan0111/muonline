@@ -30,9 +30,9 @@ namespace Client.Main.Controls
         public short WorldIndex { get; set; }
         // Use the opposite of SUN_DIRECTION because the lightmap expects a vector pointing toward the sun.
         public Vector3 LightDirection { get; set; } = Vector3.Normalize(-SunCycleManager.BaseSunDirection);
-        public IReadOnlyList<DynamicLight> DynamicLights => _lightManager.DynamicLights;
-        public IReadOnlyList<DynamicLightSnapshot> ActiveLights => _lightManager.ActiveLights;
-        public int ActiveLightsVersion => _lightManager.ActiveLightsVersion;
+        public IReadOnlyList<DynamicLight> DynamicLights => _lightManager?.DynamicLights ?? Array.Empty<DynamicLight>();
+        public IReadOnlyList<DynamicLightSnapshot> ActiveLights => _lightManager?.ActiveLights ?? Array.Empty<DynamicLightSnapshot>();
+        public int ActiveLightsVersion => _lightManager?.ActiveLightsVersion ?? 0;
         public Texture2D HeightMapTexture => _data?.HeightMapTexture;
         private Dictionary<int, string> _pendingTextureMap = new();
         private bool _replaceTextureMapping;
@@ -201,13 +201,13 @@ namespace Client.Main.Controls
 
 
         // --- Public Query Methods (Facade) ---
-        public int GetHeroTile(float xf, float yf) => _data.Mapping.Layer1[TerrainPhysics.GetTerrainIndex(xf, yf)];
+        public int GetHeroTile(float xf, float yf) => _data == null ? 0 : _data.Mapping.Layer1[TerrainPhysics.GetTerrainIndex(xf, yf)];
         public TWFlags RequestTerrainFlag(int x, int y) => _physics?.RequestTerrainFlag(x, y) ?? 0f;
         public float RequestTerrainHeight(float xf, float yf) => _physics?.RequestTerrainHeight(xf, yf) ?? 0f;
         public Vector3 EvaluateTerrainLight(float xf, float yf) => _physics?.RequestTerrainLight(xf, yf, AmbientLight) ?? Vector3.Zero;
-        public Vector3 EvaluateDynamicLight(Vector2 position) => _lightManager.EvaluateDynamicLight(position);
-        public byte GetBaseTextureIndexAt(int x, int y) => _physics.GetBaseTextureIndexAt(x, y);
-        public float GetWindValue(int x, int y) => _wind.GetWindValue(x, y);
+        public Vector3 EvaluateDynamicLight(Vector2 position) => _lightManager?.EvaluateDynamicLight(position) ?? Vector3.Zero;
+        public byte GetBaseTextureIndexAt(int x, int y) => _physics?.GetBaseTextureIndexAt(x, y) ?? 0;
+        public float GetWindValue(int x, int y) => _wind?.GetWindValue(x, y) ?? 0f;
 
         /// <summary>
         /// Renders the terrain into the shared shadow map.
@@ -218,8 +218,8 @@ namespace Client.Main.Controls
         }
 
         // --- Light Management (Facade) ---
-        public void AddDynamicLight(DynamicLight light) => _lightManager.AddDynamicLight(light);
-        public void RemoveDynamicLight(DynamicLight light) => _lightManager.RemoveDynamicLight(light);
+        public void AddDynamicLight(DynamicLight light) => _lightManager?.AddDynamicLight(light);
+        public void RemoveDynamicLight(DynamicLight light) => _lightManager?.RemoveDynamicLight(light);
 
         public override void Dispose()
         {
