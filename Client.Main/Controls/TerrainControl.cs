@@ -50,12 +50,12 @@ namespace Client.Main.Controls
             }
         }
 
-        public float WaterSpeed { get => _renderer.WaterSpeed; set => _renderer.WaterSpeed = value; }
-        public float DistortionAmplitude { get => _renderer.DistortionAmplitude; set => _renderer.DistortionAmplitude = value; }
-        public float DistortionFrequency { get => _renderer.DistortionFrequency; set => _renderer.DistortionFrequency = value; }
-        public float AmbientLight { get => _renderer.AmbientLight; set => _renderer.AmbientLight = value; }
-        public float GrassBrightness { get => _grassRenderer.GrassBrightness; set => _grassRenderer.GrassBrightness = value; }
-        public Vector2 WaterFlowDirection { get => _renderer.WaterFlowDirection; set => _renderer.WaterFlowDirection = value; }
+        public float WaterSpeed { get => _renderer?.WaterSpeed ?? 0f; set { if (_renderer != null) _renderer.WaterSpeed = value; } }
+        public float DistortionAmplitude { get => _renderer?.DistortionAmplitude ?? 0f; set { if (_renderer != null) _renderer.DistortionAmplitude = value; } }
+        public float DistortionFrequency { get => _renderer?.DistortionFrequency ?? 0f; set { if (_renderer != null) _renderer.DistortionFrequency = value; } }
+        public float AmbientLight { get => _renderer?.AmbientLight ?? 0f; set { if (_renderer != null) _renderer.AmbientLight = value; } }
+        public float GrassBrightness { get => _grassRenderer?.GrassBrightness ?? 0f; set { if (_grassRenderer != null) _grassRenderer.GrassBrightness = value; } }
+        public Vector2 WaterFlowDirection { get => _renderer?.WaterFlowDirection ?? Vector2.Zero; set { if (_renderer != null) _renderer.WaterFlowDirection = value; } }
         public HashSet<byte> GrassTextureIndices => _grassRenderer.GrassTextureIndices;
         public bool IsGpuTerrainLighting => _renderer?.IsGpuLightingActive == true;
         public bool IsDynamicLightingShaderAvailable => _renderer?.IsDynamicLightingShaderAvailable == true;
@@ -68,6 +68,12 @@ namespace Client.Main.Controls
         /// <param name="textureIndices">Valid texture indices for grass rendering (default: {0})</param>
         public void ConfigureGrass(float brightness = 1f, params byte[] textureIndices)
         {
+            if (_grassRenderer == null)
+            {
+                Console.WriteLine($"[TerrainControl] ConfigureGrass skipped for World{WorldIndex} - grass renderer not initialized (terrain failed to load).");
+                return;
+            }
+
             var oldBrightness = _grassRenderer.GrassBrightness;
             _grassRenderer.GrassBrightness = brightness;
 
@@ -108,12 +114,22 @@ namespace Client.Main.Controls
                 _loader.SetTextureMapping(_pendingTextureMap, _replaceTextureMapping);
             }
 
-            _data = await _loader.LoadAsync();
+            try
+            {
+                _data = await _loader.LoadAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[TerrainControl] Load THREW for World{WorldIndex}: {ex}");
+                Status = Models.GameControlStatus.Error;
+                throw;
+            }
             _pendingTextureMap.Clear();
             _replaceTextureMapping = false;
 
             if (_data == null)
             {
+                Console.WriteLine($"[TerrainControl] Load FAILED for World{WorldIndex} - TerrainLoader.LoadAsync() returned null (missing/invalid data folder). Terrain will not render.");
                 Status = Models.GameControlStatus.Error;
                 return;
             }
