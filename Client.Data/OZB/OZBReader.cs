@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -10,6 +10,11 @@ namespace Client.Data.OZB
 {
     public class OZBReader : BaseReader<OZB>
     {
+        // Matches the byte layout ReadBM8 consumes before pixel data:
+        // 4 (fileType+version) + 14 (header) + 40 (info) + 1026 (bmpHeader/palette).
+        private const int Bm8HeaderSize = 4 + 14 + 40 + 1026;
+        private const int RecoveredTerrainSize = 256; // matches Client.Main.Constants.TERRAIN_SIZE
+
         protected override OZB Read(byte[] buffer)
         {
             using var br = new BinaryReader(new MemoryStream(buffer));
@@ -18,13 +23,60 @@ namespace Client.Data.OZB
 
             var version = br.ReadByte();
 
-            return fileType switch
+            switch (fileType)
             {
-                "BM6" => this.ReadBM6(br, version),
-                "BM8" => this.ReadBM8(br, version),
-                "BM\u0018" => this.ReadBM8(br, version),
-                _ => throw new FileLoadException($"Invalid OZB file type. Expected BM6 or BM8, Received: {fileType}"),
+                case "BM6": return this.ReadBM6(br, version);
+                case "BM8": return this.ReadBM8(br, version);
+                case "BM": return this.ReadBM8(br, version);
+            }
+
+            // Some asset packs ship an OZB terrain heightmap whose BMP-style header was
+            // stripped/zeroed by the export tool, leaving only the raw grayscale height
+            // payload behind. If the header region is empty and there's roughly a full
+            // TERRAIN_SIZE x TERRAIN_SIZE payload after it, recover the height data
+            // directly instead of failing the whole world load.
+            if (IsAllZero(buffer, 0, Math.Min(Bm8HeaderSize, buffer.Length)))
+            {
+                var recovered = TryRecoverHeadlessHeightmap(buffer, version);
+                if (recovered != null)
+                    return recovered;
+            }
+
+            throw new FileLoadException($"Invalid OZB file type. Expected BM6 or BM8, Received: {fileType}");
+        }
+
+        private static OZB TryRecoverHeadlessHeightmap(byte[] buffer, byte version)
+        {
+            int expectedPixels = RecoveredTerrainSize * RecoveredTerrainSize;
+            int available = buffer.Length - Bm8HeaderSize;
+            if (available <= 0)
+                return null;
+
+            int pixelCount = Math.Min(available, expectedPixels);
+            var data = new Color[expectedPixels];
+            for (int i = 0; i < expectedPixels; i++)
+            {
+                byte value = i < pixelCount ? buffer[Bm8HeaderSize + i] : (byte)0;
+                data[i] = Color.FromArgb(255, value, 0, 0);
+            }
+
+            return new OZB
+            {
+                Version = version,
+                Width = RecoveredTerrainSize,
+                Height = RecoveredTerrainSize,
+                Data = data
             };
+        }
+
+        private static bool IsAllZero(byte[] buffer, int offset, int count)
+        {
+            for (int i = offset; i < offset + count; i++)
+            {
+                if (buffer[i] != 0)
+                    return false;
+            }
+            return true;
         }
 
         private OZB ReadBM8(BinaryReader br, byte version)
