@@ -149,7 +149,7 @@ jobs:
         run: dotnet tool restore
 
       - name: Publish macOS Build
-        run: dotnet publish MuMac/MuMac.csproj -c Release -r osx-arm64 -o publish-macos
+        run: dotnet publish MuMac/MuMac.csproj -c Release -r osx-arm64 -o publish-macos -p:PublishSingleFile=false
 
       - name: Create Zip
         run: powershell -Command "Compress-Archive -Path publish-macos\* -DestinationPath muonline-macos.zip"
