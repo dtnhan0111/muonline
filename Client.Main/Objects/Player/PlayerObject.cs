@@ -226,13 +226,9 @@ namespace Client.Main.Objects.Player
         // ───────────────────────────────── LOADING ─────────────────────────────────
         public override async Task Load()
         {
-            Console.WriteLine($"[DIAG] PlayerObject.Load START for {Name}, IsMainWalker={IsMainWalker}");
             Model = await BMDLoader.Instance.Prepare("Player/Player.bmd");
-            Console.WriteLine($"[DIAG] PlayerObject.Load: Player.bmd loaded (null={Model == null})");
             CacheHeadBoneHierarchy();
-            Console.WriteLine($"[DIAG] PlayerObject.Load: CacheHeadBoneHierarchy done");
             InitializeActionSpeeds();
-            Console.WriteLine($"[DIAG] PlayerObject.Load: InitializeActionSpeeds done");
 
             if (IsMainWalker)
             {
@@ -240,28 +236,22 @@ namespace Client.Main.Objects.Player
                 var charState = _networkManager.GetCharacterState();
                 CharacterClass = (CharacterClassNumber)charState.Class;
                 await UpdateBodyPartClassesAsync();
-                Console.WriteLine($"[DIAG] PlayerObject.Load: UpdateBodyPartClassesAsync (main) done");
 
                 // Then, hook events to update equipment based on inventory
                 HookInventoryEvents();
                 // Perform the initial appearance update and wait for it to complete
                 await RunInventoryAppearanceUpdateAsync();
-                Console.WriteLine($"[DIAG] PlayerObject.Load: RunInventoryAppearanceUpdateAsync done");
             }
             else
             {
                 // Remote players use AppearanceData
                 await UpdateBodyPartClassesAsync();
-                Console.WriteLine($"[DIAG] PlayerObject.Load: UpdateBodyPartClassesAsync (remote) done");
                 await UpdateEquipmentAppearanceAsync();
-                Console.WriteLine($"[DIAG] PlayerObject.Load: UpdateEquipmentAppearanceAsync done");
             }
 
             await base.Load();
-            Console.WriteLine($"[DIAG] PlayerObject.Load: base.Load() done");
 
             UpdateWorldBoundingBox();
-            Console.WriteLine($"[DIAG] PlayerObject.Load COMPLETE for {Name}");
         }
 
         public async Task Load(PlayerClass playerClass)
@@ -756,17 +746,14 @@ namespace Client.Main.Objects.Player
 
         private async Task UpdateEquipmentAppearanceAsync()
         {
-            Console.WriteLine($"[DIAG] UpdateEquipmentAppearanceAsync START, RawData.IsEmpty={Appearance.RawData.IsEmpty}");
             if (Appearance.RawData.IsEmpty) return; // No appearance data to process
 
             static bool HasEquippedAppearanceItem(short index)
-                => index != 0xFF && index != 0x1FF;
+                => index >= 0 && index != 0xFF && index != 0x1FF;
 
-            Console.WriteLine($"[DIAG] Appearance: Helm={Appearance.HelmItemIndex} Armor={Appearance.ArmorItemIndex} Pants={Appearance.PantsItemIndex} Gloves={Appearance.GlovesItemIndex} Boots={Appearance.BootsItemIndex} HasWings={Appearance.WingInfo.HasWings} LeftHand={Appearance.LeftHandItemNumber} RightHand={Appearance.RightHandItemNumber}");
             // Helm
             if (HasEquippedAppearanceItem(Appearance.HelmItemIndex))
             {
-                Console.WriteLine($"[DIAG] Loading Helm...");
                 var helmDef = ItemDatabase.GetItemDefinition(7, Appearance.HelmItemIndex);
                 if (helmDef?.TexturePath != null)
                 {
@@ -938,9 +925,7 @@ namespace Client.Main.Objects.Player
                 Weapon2.Model = null;
                 Weapon2.TexturePath = null;
             }
-            Console.WriteLine($"[DIAG] UpdateEquipmentAppearanceAsync: reached EnsureHelmHeadVisibleAsync");
             await EnsureHelmHeadVisibleAsync();
-            Console.WriteLine($"[DIAG] UpdateEquipmentAppearanceAsync COMPLETE");
         }
         public async Task UpdateEquipmentAppearanceFromConfig(AppearanceConfig appearanceConfig)
         {
