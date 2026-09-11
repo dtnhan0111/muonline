@@ -756,14 +756,17 @@ namespace Client.Main.Objects.Player
 
         private async Task UpdateEquipmentAppearanceAsync()
         {
+            Console.WriteLine($"[DIAG] UpdateEquipmentAppearanceAsync START, RawData.IsEmpty={Appearance.RawData.IsEmpty}");
             if (Appearance.RawData.IsEmpty) return; // No appearance data to process
 
             static bool HasEquippedAppearanceItem(short index)
                 => index != 0xFF && index != 0x1FF;
 
+            Console.WriteLine($"[DIAG] Appearance: Helm={Appearance.HelmItemIndex} Armor={Appearance.ArmorItemIndex} Pants={Appearance.PantsItemIndex} Gloves={Appearance.GlovesItemIndex} Boots={Appearance.BootsItemIndex} HasWings={Appearance.WingInfo.HasWings} LeftHand={Appearance.LeftHandItemNumber} RightHand={Appearance.RightHandItemNumber}");
             // Helm
             if (HasEquippedAppearanceItem(Appearance.HelmItemIndex))
             {
+                Console.WriteLine($"[DIAG] Loading Helm...");
                 var helmDef = ItemDatabase.GetItemDefinition(7, Appearance.HelmItemIndex);
                 if (helmDef?.TexturePath != null)
                 {
@@ -935,7 +938,9 @@ namespace Client.Main.Objects.Player
                 Weapon2.Model = null;
                 Weapon2.TexturePath = null;
             }
+            Console.WriteLine($"[DIAG] UpdateEquipmentAppearanceAsync: reached EnsureHelmHeadVisibleAsync");
             await EnsureHelmHeadVisibleAsync();
+            Console.WriteLine($"[DIAG] UpdateEquipmentAppearanceAsync COMPLETE");
         }
         public async Task UpdateEquipmentAppearanceFromConfig(AppearanceConfig appearanceConfig)
         {
